@@ -19,7 +19,7 @@ class _CategorySelectionPageState extends State<CategorySelectionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgcolor,
+      backgroundColor: Colors.black12,
       appBar: AppBar(
         elevation: 10,
         backgroundColor: bgcolor,
@@ -28,7 +28,7 @@ class _CategorySelectionPageState extends State<CategorySelectionPage> {
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 50,
+            fontSize: 40,
           ),
         ),
         centerTitle: true,
@@ -37,65 +37,78 @@ class _CategorySelectionPageState extends State<CategorySelectionPage> {
         stream: ref.snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasData) {
-            return ListView.builder(
-                itemCount: snapshot.data!.docs.length,
-                itemBuilder: (context, index) {
-                  return SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: InkWell(
-                                onTap: () {
-                                  if (snapshot.data!.docs[index]['topic'] ==
-                                      'Translator') {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const Translator(),
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 100),
+                      child: Image.network(
+                        'https://cdn-icons-png.flaticon.com/128/10643/10643926.png',
+                        height: MediaQuery.of(context).size.height / 3,
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 40,
+                  ),
+                  Container(
+                    height: 200,
+                    child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              left: MediaQuery.of(context).size.width / 15,
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                if (snapshot.data!.docs[index]['topic'] ==
+                                    'Translator') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const Translator(),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => TopicPage(
+                                        topic: snapshot.data!.docs[index]
+                                            ['topic'],
                                       ),
-                                    );
-                                  } else {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => TopicPage(
-                                          topic: snapshot.data!.docs[index]
-                                              ['topic'],
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Card(
-                                  elevation: 100,
-                                  color: Colors.brown,
-                                  child: SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.height / 4,
-                                    width:
-                                        MediaQuery.of(context).size.width / 4,
-                                    child: Center(
-                                      child: Text(
-                                        snapshot.data!.docs[index]['topic'],
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 30,
-                                        ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Card(
+                                elevation: 100,
+                                color: bgcolor,
+                                child: SizedBox(
+                                  height: 75,
+                                  width: 200,
+                                  child: Center(
+                                    child: Text(
+                                      snapshot.data!.docs[index]['topic'],
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 30,
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                });
+                          );
+                        }),
+                  ),
+                ],
+              ),
+            );
           } else if (snapshot.connectionState == ConnectionState.waiting) {
             return const Text('waiting');
           } else {

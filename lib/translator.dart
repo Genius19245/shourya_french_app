@@ -1,5 +1,9 @@
+import 'package:audioplayers/audioplayers.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'model/data_model.dart';
 
 class Translator extends StatefulWidget {
   const Translator({super.key});
@@ -9,16 +13,21 @@ class Translator extends StatefulWidget {
 }
 
 class _TranslatorState extends State<Translator> {
+  String? url;
   final ref = FirebaseFirestore.instance
       .collection('Translator')
       .doc('mKlyI5149sKCx3VN1c7T');
-  // //calling withConverter is that the generic type T is set to your custom Model. This means that every subsequent call on the document ref, will work with that type instead of Map<String, dynamic>.
-  // .withConverter<TranslatorModel>(
-  //   fromFirestore: (snapshot, _) => TranslatorModel.fromJson(
-  //     snapshot.data()!,
-  //   ),
-  //   toFirestore: (model, _) => model.toJson(),
-  // );
+  final textref = FirebaseFirestore.instance
+      .collection('Text_To_Speech')
+      .withConverter<DataModel>(
+        fromFirestore: (snapshot, _) => DataModel.fromJson(
+          snapshot.data()!,
+        ),
+        toFirestore: (model, _) => model.toJson(),
+      );
+  String? docId;
+  String? downloadUrl;
+  bool isAudioAvailable = false;
 
   /// Controller for updating translation input text.
   final TextEditingController _textController = TextEditingController();
@@ -26,7 +35,18 @@ class _TranslatorState extends State<Translator> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Text Translator")),
+      backgroundColor: Colors.black12,
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 32, 149, 245),
+        title: const Text(
+          'English to french ',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 35,
+          ),
+        ),
+      ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: ref.snapshots(),
         builder: (context, snapshot) {
@@ -43,9 +63,9 @@ class _TranslatorState extends State<Translator> {
                   height: 30,
                 ),
                 Image.network(
-                    'https://cdn-icons-png.flaticon.com/512/576/576515.png',
-                    height: 100,
-                    width: 100,
+                    'https://cdn-icons-png.flaticon.com/128/1375/1375459.png',
+                    height: 200,
+                    width: 200,
                     fit: BoxFit.cover),
                 Spacer(),
                 Center(
@@ -53,7 +73,7 @@ class _TranslatorState extends State<Translator> {
                     height: 200,
                     decoration: const BoxDecoration(
                       borderRadius: BorderRadius.all(Radius.circular(50)),
-                      color: Colors.brown,
+                      color: Color.fromARGB(255, 32, 149, 245),
                     ),
                     width: MediaQuery.of(context).size.width / 2,
                     child: Column(
@@ -80,14 +100,6 @@ class _TranslatorState extends State<Translator> {
                             ],
                           ),
                         ),
-                        IconButton(
-                          onPressed: () {},
-                          icon: Icon(
-                            Icons.volume_up,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -96,7 +108,7 @@ class _TranslatorState extends State<Translator> {
                   padding: const EdgeInsets.all(16),
                   child: Container(
                     height: 50,
-                    width: 400,
+                    width: 500,
                     decoration: BoxDecoration(
                       color: Colors.blue[300],
                       borderRadius: BorderRadius.all(
@@ -108,28 +120,53 @@ class _TranslatorState extends State<Translator> {
                       controller: _textController,
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        hintText: 'Input text',
-                        contentPadding: EdgeInsets.only(top: 15, left: 10),
-                        prefixIcon: IconButton(
-                          icon: const Icon(
-                            Icons.keyboard_voice_rounded,
-                            color: Colors.white,
-                            size: 29,
-                          ),
-                          onPressed: () {},
+                        labelStyle: TextStyle(
+                          fontSize: 25,
+                          color: Colors.white60,
+                          fontWeight: FontWeight.w200,
                         ),
+                        hintText: 'Type your text to translate',
+                        contentPadding: EdgeInsets.only(top: 13, left: 15),
                         suffixIcon: IconButton(
-                          icon: Icon(Icons.send, color: Colors.blue),
-                          onPressed: () async {
-                            // Update the input field on the translation document.
-                            await ref.update(
-                              {'input': _textController.text},
-                            );
+                            icon: Icon(Icons.send, color: Colors.white),
+                            onPressed: () async {
+                              if (_textController.text == "") {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Enter the text'),
+                                  ),
+                                );
+                              }
+                              await ref.update(
+                                {'input': _textController.text},
+                              );
+                              final doc = await textref
+                                  .add(DataModel(
+                                text: snapshot.data!['translated']['fr'],
+                              ))
+                                  .then(
+                                (doc) async {
+                                  setState(() {
+                                    docId = doc.id;
+                                  });
+                                  // Update the input field on the translation document.
 
-                            // Clear the text field to prepare for next input.
-                            // _textController.clear();
-                          },
-                        ),
+                                  Future.delayed(Duration(seconds: 5),
+                                      () async {
+                                    downloadUrl = await FirebaseStorage.instance
+                                        .ref()
+                                        .child('Text_To_Speech/$docId.mp3')
+                                        .getDownloadURL();
+                                    setState(() {
+                                      isAudioAvailable = true;
+                                    });
+                                  });
+
+                                  // Clear the text field to prepare for next input.
+                                  // _textController.clear();
+                                },
+                              );
+                            }),
                       ),
                     ),
                   ),
